@@ -767,7 +767,7 @@ class BrSensor(SensorEntity):
 
     async def async_added_to_hass(self) -> None:
         """Handle entity being added to hass."""
-        if not hasattr(self, '_data'):
+        if not hasattr(self, "_data"):
             return
         if self._data is None:
             return
@@ -889,7 +889,7 @@ class BrSensor(SensorEntity):
             nested = data.get(PRECIPITATION_FORECAST)
             self._timeframe = nested.get(TIMEFRAME)
             self._attr_native_value = nested.get(
-                sensor_type[len(PRECIPITATION_FORECAST) + 1:]
+                sensor_type[len(PRECIPITATION_FORECAST) + 1 :]
             )
             return True
 
