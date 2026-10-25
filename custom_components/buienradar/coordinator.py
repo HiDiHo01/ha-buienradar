@@ -2,7 +2,7 @@
 import asyncio
 import logging
 from collections.abc import Callable
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import aiohttp
 import async_timeout
@@ -82,7 +82,7 @@ class BuienalarmDataUpdateCoordinator(DataUpdateCoordinator):
                 response.raise_for_status()
                 self.data = await response.json()
                 self.last_update_success = True
-        except (ClientResponseError, asyncio.TimeoutError) as error:
+        except (TimeoutError, ClientResponseError) as error:
             _LOGGER.error(f"Error fetching data: {error}")
             self.last_update_success = False
             raise UpdateFailed(f"Error fetching data: {error}") from error
@@ -107,7 +107,7 @@ class BuienalarmDataUpdateCoordinator(DataUpdateCoordinator):
         try:
             async with async_timeout.timeout(30):
                 data = await self.api.async_get_data()
-                self.api_last_updated = datetime.now(timezone.utc)
+                self.api_last_updated = datetime.now(UTC)
                 return data
                 response = await self.hass.async_add_executor_job(
                     requests.get, self.url
@@ -135,7 +135,7 @@ class BuienalarmDataUpdateCoordinator(DataUpdateCoordinator):
             try:
                 _LOGGER.debug("[COORD UPDATE] Fetch try %s", attempt)
                 return await self.api.async_get_data(timeout=_API_TIMEOUT)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 _LOGGER.warning(
                     "[COORD UPDATE] Timeout (%ss) bij poging %s",
                     _API_TIMEOUT.total,
@@ -205,7 +205,6 @@ class BuienalarmDataUpdateCoordinator(DataUpdateCoordinator):
     async def async_stop(self):
         """Stop the data refreshing task."""
         # You can add cleanup logic here if needed
-        pass
 
 
 async def create_buienalarm_coordinator(
@@ -267,10 +266,12 @@ async def _fetch_buienalarm_data(coordinator: DataUpdateCoordinator) -> dict:
     try:
         async with coordinator.client_session.get(url, timeout=API_TIMEOUT) as response:
             if response.status != 200:
-                raise Exception("Error fetching data")
+                raise UpdateFailed(
+                    f"Error fetching Buienalarm data: HTTP status {response.status}"
+                )
 
             data = await response.json()
             return data
 
-    except Exception as e:
-        raise Exception(f"Error fetching data: {e}")
+    except (aiohttp.ClientError, TimeoutError, ValueError) as err:
+        raise UpdateFailed("Error fetching Buienalarm data") from err
