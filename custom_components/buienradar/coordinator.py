@@ -1,8 +1,8 @@
 # coordinator.py
 import asyncio
 import logging
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
-from typing import Callable
 
 import aiohttp
 import async_timeout

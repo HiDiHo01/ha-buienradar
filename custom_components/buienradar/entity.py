@@ -3,9 +3,9 @@
 
 import logging
 import re
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta, timezone
-from typing import Callable, Final
+from typing import Final
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
 from homeassistant.config_entries import ConfigEntry
@@ -406,7 +406,7 @@ class BuienalarmEntity(CoordinatorEntity):
                     precip_duration: float = (
                         data_point_time - start_time
                     ).total_seconds() / 60
-                    return min(MAX_DURATION_MINUTES, int(round(precip_duration)))
+                    return min(MAX_DURATION_MINUTES, round(precip_duration))
                 else:
                     return 0
 
@@ -445,13 +445,13 @@ class BuienalarmEntity(CoordinatorEntity):
             else:
                 if start_time is not None:
                     duration = (data_point_time - start_time).total_seconds() / 60
-                    return min(MAX_DURATION_MINUTES, int(round(duration)))
+                    return min(MAX_DURATION_MINUTES, round(duration))
                 return 0
 
         # Precipitation continued through all forecast points
         if start_time is not None and last_time is not None:
             duration = (last_time - start_time).total_seconds() / 60
-            return min(MAX_DURATION_MINUTES, int(round(duration)))
+            return min(MAX_DURATION_MINUTES, round(duration))
 
         return 0
 
@@ -828,9 +828,7 @@ class BuienalarmEntity(CoordinatorEntity):
 
             if rate > 0:
                 # Found the first future bin with precipitation
-                delta_minutes: int = int(
-                    round((point_time - now_utc).total_seconds() / 60)
-                )
+                delta_minutes: int = round((point_time - now_utc).total_seconds() / 60)
                 _LOGGER.debug(
                     "[BUIENALARM ENTITY] Next precipitation for %s in %d min (rate=%.2f mm/h)",
                     self.name,
