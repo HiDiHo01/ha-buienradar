@@ -120,7 +120,7 @@ class BuienradarFlowHandler(ConfigFlow, domain=DOMAIN):
                     data={
                         CONF_LATITUDE: latitude,
                         CONF_LONGITUDE: longitude,
-                        CONF_NAME: "Buienradar",      # used as integration prefix
+                        CONF_NAME: "Buienradar",  # used as integration prefix
                         "stationname": station_name,  # optional: store station name
                     },
                 )
@@ -156,9 +156,13 @@ class BuienradarFlowHandler(ConfigFlow, domain=DOMAIN):
                     _LOGGER.error("Buienradar returned HTTP %s", resp.status)
                     return None
                 content = await resp.text()
-                _LOGGER.debug("Received response from Buienradar: %s", content[:200])  # log first 200 chars
+                _LOGGER.debug(
+                    "Received response from Buienradar: %s", content[:200]
+                )  # log first 200 chars
                 # parse_data requires both content args for rain and weather
-                result = parse_data(content, content, latitude, longitude, 60, api="json")
+                result = parse_data(
+                    content, content, latitude, longitude, 60, api="json"
+                )
                 if result.get("success"):
                     return result["data"].get("stationname")
         except Exception:
