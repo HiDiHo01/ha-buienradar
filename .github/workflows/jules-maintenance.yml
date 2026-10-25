@@ -1,0 +1,91 @@
+name: Jules Scheduled Maintenance
+
+on:
+  schedule:
+    # Run weekly on Mondays at 08:00 UTC
+    - cron: '0 8 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  maintenance:
+    name: Weekly Codebase & Dependency Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Create Jules Maintenance Session
+        id: jules
+        env:
+          JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "${JULES_API_KEY:-}" ]; then
+            echo "Warning: JULES_API_KEY secret is not configured." >&2
+            exit 0
+          fi
+
+          OWNER="${REPOSITORY%%/*}"
+          REPO="${REPOSITORY#*/}"
+          API="https://jules.googleapis.com/v1alpha"
+          AUTH_HEADER="X-Goog-Api-Key: ${JULES_API_KEY}"
+
+          SOURCES=$(curl --silent --show-error \
+            --url "${API}/sources" \
+            --header "${AUTH_HEADER}" || echo "{}")
+
+          SOURCE_INFO=$(jq -cer \
+            --arg owner "${OWNER}" \
+            --arg repo "${REPO}" \
+            '[.sources[]? | select(
+              .githubRepo.owner == $owner and
+              .githubRepo.repo == $repo
+            )][0] // empty' <<< "${SOURCES}") || {
+              echo "Warning: ${REPOSITORY} is not available as a Jules source." >&2
+              exit 0
+            }
+
+          SOURCE=$(jq -r '.name // empty' <<< "${SOURCE_INFO}")
+          DEFAULT_BRANCH=$(jq -r '.githubRepo.defaultBranch.displayName // empty' <<< "${SOURCE_INFO}")
+
+          PROMPT=$(cat <<EOF
+          Perform a weekly codebase audit for ha-buienradar:
+          1. Check manifest.json requirements (buienradar, vincenty, geopy) for update availability or deprecations.
+          2. Check custom_components/buienradar for Home Assistant core API deprecations or warnings.
+          3. Check compliance with quality_scale.yaml rules.
+          4. Report any recommended improvements or open a PR if fixes are required.
+          EOF
+          )
+
+          PAYLOAD=$(jq -n \
+            --arg prompt "${PROMPT}" \
+            --arg source "${SOURCE}" \
+            --arg branch "${DEFAULT_BRANCH}" \
+            --arg title "Weekly Codebase & Dependency Audit" \
+            '{
+              prompt: $prompt,
+              title: $title,
+              sourceContext: {
+                source: $source,
+                githubRepoContext: {
+                  startingBranch: $branch
+                }
+              }
+            }')
+
+          RESPONSE=$(curl --fail-with-body --silent --show-error \
+            --request POST \
+            --url "${API}/sessions" \
+            --header "${AUTH_HEADER}" \
+            --header "Content-Type: application/json" \
+            --data "${PAYLOAD}") || exit 0
+
+          SESSION=$(jq -r '.name // empty' <<< "${RESPONSE}")
+          echo "Created scheduled maintenance session: ${SESSION}"
