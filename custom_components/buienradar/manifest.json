@@ -1,14 +1,13 @@
 {
   "domain": "buienradar",
   "name": "Buienradar",
-  "categories": ["weather_alerts.forecasts"],
   "codeowners": ["@mjj4791", "@ties", "@Robbie1221"],
   "config_flow": true,
-  "documentation": "https://www.home-assistant.io/integrations/buienradar",
+  "documentation": "https://github.com/HiDiHo01/ha-buienradar",
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/HiDiHo01/ha-buienradar/issues",
   "loggers": ["buienradar", "vincenty", "geopy"],
-  "requirements": ["buienradar==1.0.9", "geopy==2.5.0", "vincenty==0.1.4"],
+  "requirements": ["buienradar>=1.0.9", "geopy>=2.3.0", "vincenty==0.1.4"],
   "version": "1.0.0"
 }
