@@ -28,13 +28,13 @@ Welcome to the **ha-buienradar** repository. This document provides guidance, co
 │       ├── coordinator.py      # DataUpdateCoordinator for polling API
 │       ├── entity.py           # Base entity class for Buienradar
 │       ├── manifest.json       # Home Assistant integration metadata
+│       ├── quality_scale.yaml  # Quality scale standard tracking
 │       ├── sensor.py           # Individual weather sensors
 │       ├── strings.json        # Base localization strings
 │       ├── util.py             # Utility functions
 │       ├── weather.py          # Weather entity with forecasts
 │       └── translations/       # Translated string JSON files (40+ languages)
 ├── README.md                   # Main documentation
-├── quality_scale.yaml          # Quality scale standard tracking
 └── home-assistant.md           # Home Assistant architecture guide
 ```
 

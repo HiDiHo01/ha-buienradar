@@ -16,7 +16,7 @@ The table below details which versions of `ha-buienradar` receive security updat
 We take the security of `ha-buienradar` seriously. If you discover a security vulnerability, please do not report it through public issue trackers or discussions.
 
 ### Reporting Process
-1. Email details of the vulnerability to the codeowners listed in `manifest.json` (`@mjj4791`, `@ties`, `@Robbie1221`) or open a Private Security Advisory on GitHub.
+1. Sign in to GitHub and [open a Private Security Advisory for this repository](https://github.com/HiDiHo01/ha-buienradar/security/advisories/new).
 2. Include details regarding:
    - Type of issue (e.g., credential leak, unvalidated input, dependency vulnerability)
    - Step-by-step instructions or proof-of-concept to reproduce
