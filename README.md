@@ -12,7 +12,7 @@ An advanced Home Assistant custom component integration for **Buienradar** weath
 ## 🌟 Key Features
 
 - **🌦️ Detailed Weather Entities**: Real-time temperature, humidity, wind speed, atmospheric pressure, visibility, precipitation, and detailed weather conditions.
-- **🛰️ Radar Camera Entity**: High-resolution animated precipitation radar camera map centered on your location with customizable frame dimensions (`dimension`) and time span (`delta`).
+- **🛰️ Radar Camera Entity**: High-resolution animated precipitation radar camera map centered on your location.
 - **☔ Rain Binary Sensor**: Detect incoming precipitation within a configurable timeframe (e.g., next 60 minutes) to trigger automated awnings, windows, or notification automations.
 - **📈 Short-term & Daily Forecasts**: Provides hourly radar forecast intensity alongside daily multi-day weather forecasts.
 - **⚙️ Full UI Configuration & Options Flow**: Simple setup via Home Assistant UI with full support for re-configuration and adjustable options.
@@ -47,9 +47,7 @@ An advanced Home Assistant custom component integration for **Buienradar** weath
 2. Click **Add Integration** in the bottom right corner.
 3. Search for **Buienradar** and select it.
 4. Follow the setup wizard:
-   - Select your Country (`NL` or `BE`).
    - Confirm or set location coordinates (Latitude / Longitude).
-   - Configure radar image dimensions and forecast timeframes.
 
 ### Configuration Options
 
@@ -57,8 +55,8 @@ You can adjust the integration settings anytime via **Settings** -> **Devices & 
 
 | Option | Description | Default |
 | :--- | :--- | :--- |
+| **Country Code** | Country code for weather and forecast data (`NL` or `BE`) | `NL` |
 | **Timeframe** | Time window (minutes) for precipitation evaluation | `60` min |
-| **Radar Dimension** | Image width and height (pixels) for radar map | `700` px |
 | **Radar Delta** | Historical/forecast time span (seconds) for radar loop | `600` s |
 
 ---
