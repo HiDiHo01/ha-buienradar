@@ -1,7 +1,7 @@
 # Buienradar Home Assistant Integration (`ha-buienradar`)
 
 [![GitHub Release](https://img.shields.io/github/v/release/mjj4791/ha-buienradar?style=for-the-badge)](https://github.com/mjj4791/ha-buienradar/releases)
-[![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge)](https://www.hacs.xyz/docs/faq/custom_repositories/)
+[![HACS Default](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/default)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.1%2B-blue.svg?style=for-the-badge)](https://www.home-assistant.io)
 
@@ -12,7 +12,7 @@ An advanced Home Assistant custom component integration for **Buienradar** weath
 ## 🌟 Key Features
 
 - **🌦️ Detailed Weather Entities**: Real-time temperature, humidity, wind speed, atmospheric pressure, visibility, precipitation, and detailed weather conditions.
-- **🛰️ Radar Camera Entity**: Animated precipitation radar camera map for the selected country with an adjustable image update interval (`delta`).
+- **🛰️ Radar Camera Entity**: High-resolution animated precipitation radar camera map centered on your location with customizable frame dimensions (`dimension`) and time span (`delta`).
 - **☔ Rain Binary Sensor**: Detect incoming precipitation within a configurable timeframe (e.g., next 60 minutes) to trigger automated awnings, windows, or notification automations.
 - **📈 Short-term & Daily Forecasts**: Provides hourly radar forecast intensity alongside daily multi-day weather forecasts.
 - **⚙️ Full UI Configuration & Options Flow**: Simple setup via Home Assistant UI with full support for re-configuration and adjustable options.
@@ -25,9 +25,9 @@ An advanced Home Assistant custom component integration for **Buienradar** weath
 ### Option 1: HACS (Home Assistant Community Store) - Recommended
 
 1. Ensure [HACS](https://hacs.xyz/) is installed and running in your Home Assistant instance.
-2. Open **HACS**, then open the three-dot menu and select **Custom repositories**.
-3. Enter `https://github.com/HiDiHo01/ha-buienradar`, select **Integration** as the type, and click **Add**. This repository is not in the HACS default list.
-4. Search for **Buienradar**, open this repository, and click **Download**.
+2. Open **HACS** > **Integrations**.
+3. Search for **Buienradar**.
+4. Click **Download**.
 5. Restart Home Assistant.
 
 ### Option 2: Manual Installation
@@ -47,8 +47,9 @@ An advanced Home Assistant custom component integration for **Buienradar** weath
 2. Click **Add Integration** in the bottom right corner.
 3. Search for **Buienradar** and select it.
 4. Follow the setup wizard:
+   - Select your Country (`NL` or `BE`).
    - Confirm or set location coordinates (Latitude / Longitude).
-   - After setup, use **Configure** to select the radar country, image update interval, and rain forecast timeframe.
+   - Configure radar image dimensions and forecast timeframes.
 
 ### Configuration Options
 
@@ -56,9 +57,9 @@ You can adjust the integration settings anytime via **Settings** -> **Devices & 
 
 | Option | Description | Default |
 | :--- | :--- | :--- |
-| **Country** | Country shown by the radar camera (`NL` or `BE`) | `NL` |
 | **Timeframe** | Time window (minutes) for precipitation evaluation | `60` min |
-| **Radar Delta** | Interval between camera image updates (seconds) | `600` s |
+| **Radar Dimension** | Image width and height (pixels) for radar map | `700` px |
+| **Radar Delta** | Historical/forecast time span (seconds) for radar loop | `600` s |
 
 ---
 
