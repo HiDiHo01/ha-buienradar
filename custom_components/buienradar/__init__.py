@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 
 from .util import BrData
 
-PLATFORMS = [Platform.CAMERA, Platform.SENSOR, Platform.WEATHER]
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.CAMERA, Platform.SENSOR, Platform.WEATHER]
 
 type BuienRadarConfigEntry = ConfigEntry[dict[Platform, BrData]]
 
