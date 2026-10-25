@@ -28,41 +28,36 @@ Translations follow standard Home Assistant JSON schemas:
 ```json
 {
   "config": {
-    "step": {
-      "user": {
-        "title": "Buienradar Configuration",
-        "description": "Set up Buienradar weather data for your location.",
-        "data": {
-          "latitude": "Latitude",
-          "longitude": "Longitude",
-          "country": "Country Code (NL or BE)"
-        }
-      }
+    "abort": {
+      "already_configured": "Location is already configured"
     },
     "error": {
-      "cannot_connect": "Failed to connect to Buienradar API",
-      "invalid_country": "Unsupported country code specified"
+      "already_configured": "Location is already configured"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "latitude": "Latitude",
+          "longitude": "Longitude"
+        }
+      }
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Buienradar Options",
         "data": {
-          "timeframe": "Timeframe for rain forecast (minutes)",
-          "dimension": "Radar image resolution dimension (pixels)",
-          "delta": "Radar animation delta span (seconds)"
+          "country_code": "Country to display camera images for.",
+          "delta": "Interval between camera image updates",
+          "timeframe": "Time to look ahead for precipitation forecast"
         }
       }
     }
   },
   "entity": {
     "sensor": {
-      "temperature": {
-        "name": "Temperature"
-      },
-      "humidity": {
-        "name": "Humidity"
+      "condition": {
+        "name": "Condition"
       }
     }
   }
