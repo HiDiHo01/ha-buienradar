@@ -706,9 +706,13 @@ async def async_setup_entry(
     latitude = config.get(CONF_LATITUDE, hass.config.latitude)
     longitude = config.get(CONF_LONGITUDE, hass.config.longitude)
 
-    timeframe = options.get(
+    raw_timeframe = options.get(
         CONF_TIMEFRAME, config.get(CONF_TIMEFRAME, DEFAULT_TIMEFRAME)
     )
+    try:
+        timeframe = int(raw_timeframe)
+    except (ValueError, TypeError):
+        timeframe = DEFAULT_TIMEFRAME
 
     if None in (latitude, longitude):
         _LOGGER.error("Latitude or longitude not set in Home Assistant config")
