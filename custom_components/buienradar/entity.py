@@ -110,12 +110,11 @@ class BuienalarmEntity(CoordinatorEntity):
                     value,
                 )
                 return value
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.error(
-                    "[BUIENALARM ENTITY] Error retrieving data for sensor '%s' and key '%s': %s",
+            except Exception:
+                _LOGGER.exception(
+                    "[BUIENALARM ENTITY] Error retrieving data for sensor '%s' and key '%s'",
                     self.name,
                     key,
-                    err,
                 )
                 return None  # return None if an error occurs or not?
 
@@ -942,11 +941,10 @@ class BuienalarmEntity(CoordinatorEntity):
 
         try:
             precipitation_periods = self._get_precipitation_periods()
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.error(
-                "[BUIENALARM ENTITY] Fout bij ophalen van neerslagperiodes voor '%s': %s",
+        except Exception:
+            _LOGGER.exception(
+                "[BUIENALARM ENTITY] Fout bij ophalen van neerslagperiodes voor '%s'",
                 self.name,
-                err,
             )
             return periods_list
 

@@ -1,7 +1,7 @@
 """Binary sensors for Buienalarm rain detection."""
 
 from collections.abc import Mapping
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Final, override
 
 from homeassistant.components.binary_sensor import (
@@ -83,7 +83,7 @@ class BuienalarmBinarySensor(
             self._attr_is_on = False
             return
 
-        current_time = datetime.now(timezone.utc)
+        current_time = datetime.now(UTC)
 
         match self.entity_description.key:
             case "precipitation_expected":
@@ -160,7 +160,7 @@ def _is_current_precipitation_period(
     if timestamp is None:
         return False
 
-    period_start = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+    period_start = datetime.fromtimestamp(timestamp, tz=UTC)
     period_end = period_start + timedelta(minutes=5)
 
     return period_start <= current_time < period_end and _is_precipitation_period(
@@ -193,7 +193,7 @@ async def async_setup_entry(
     """Set up Buienalarm binary sensors from their descriptions."""
     coordinator = hass.data.get(DOMAIN, {}).get(config_entry.entry_id)
     if not isinstance(coordinator, BuienalarmDataUpdateCoordinator):
-        raise RuntimeError(
+        raise TypeError(
             "Buienalarm coordinator is not available for config entry "
             f"{config_entry.entry_id}"
         )
