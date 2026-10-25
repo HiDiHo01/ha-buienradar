@@ -1,0 +1,132 @@
+name: Jules Command Trigger
+
+on:
+  issue_comment:
+    types:
+      - created
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  jules-command:
+    name: Dispatch Jules Task
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    # Trigger only if comment starts with /jules or @jules and author is a repo collaborator/owner
+    if: >-
+      (startsWith(github.event.comment.body, '/jules') || startsWith(github.event.comment.body, '@jules')) &&
+      (github.event.comment.author_association == 'OWNER' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'COLLABORATOR')
+
+    steps:
+      - name: Extract Prompt and Create Jules Session
+        id: jules
+        env:
+          JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
+          REPOSITORY: ${{ github.repository }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "${JULES_API_KEY:-}" ]; then
+            echo "Warning: JULES_API_KEY secret is not configured." >&2
+            exit 0
+          fi
+
+          # Strip /jules or @jules prefix
+          PROMPT_RAW=$(echo "${COMMENT_BODY}" | sed -E 's/^\/(jules|@jules)\s*//i')
+
+          if [ -z "${PROMPT_RAW}" ]; then
+            echo "Warning: No command prompt provided after /jules." >&2
+            exit 0
+          fi
+
+          OWNER="${REPOSITORY%%/*}"
+          REPO="${REPOSITORY#*/}"
+          API="https://jules.googleapis.com/v1alpha"
+          AUTH_HEADER="X-Goog-Api-Key: ${JULES_API_KEY}"
+
+          SOURCES=$(curl --silent --show-error \
+            --url "${API}/sources" \
+            --header "${AUTH_HEADER}" || echo "{}")
+
+          SOURCE_INFO=$(jq -cer \
+            --arg owner "${OWNER}" \
+            --arg repo "${REPO}" \
+            '[.sources[]? | select(
+              .githubRepo.owner == $owner and
+              .githubRepo.repo == $repo
+            )][0] // empty' <<< "${SOURCES}") || {
+              echo "Warning: ${REPOSITORY} is not available as a Jules source." >&2
+              exit 0
+            }
+
+          SOURCE=$(jq -r '.name // empty' <<< "${SOURCE_INFO}")
+          DEFAULT_BRANCH=$(jq -r '.githubRepo.defaultBranch.displayName // empty' <<< "${SOURCE_INFO}")
+
+          PROMPT=$(cat <<EOF
+          Task requested from issue/PR #${ISSUE_NUMBER} (${ISSUE_URL}):
+
+          ${PROMPT_RAW}
+
+          Read AGENTS.md and applicable repository guidelines before proceeding.
+          EOF
+          )
+
+          PAYLOAD=$(jq -n \
+            --arg prompt "${PROMPT}" \
+            --arg source "${SOURCE}" \
+            --arg branch "${DEFAULT_BRANCH}" \
+            --arg title "Issue #${ISSUE_NUMBER} Jules Command" \
+            '{
+              prompt: $prompt,
+              title: $title,
+              sourceContext: {
+                source: $source,
+                githubRepoContext: {
+                  startingBranch: $branch
+                }
+              }
+            }')
+
+          RESPONSE=$(curl --fail-with-body --silent --show-error \
+            --request POST \
+            --url "${API}/sessions" \
+            --header "${AUTH_HEADER}" \
+            --header "Content-Type: application/json" \
+            --data "${PAYLOAD}") || exit 0
+
+          SESSION=$(jq -r '.name // empty' <<< "${RESPONSE}")
+          if [ -n "${SESSION}" ]; then
+            echo "session=${SESSION}" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Reply to Comment
+        if: ${{ steps.jules.outputs.session != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          SESSION: ${{ steps.jules.outputs.session }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          gh api \
+            "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" \
+            --method POST \
+            --field body="$(cat <<EOF
+          **Jules session triggered**
+
+          <!-- jules-session: ${SESSION} -->
+          Jules session: \`${SESSION}\`
+
+          View and track progress in [Jules](https://jules.google/).
+          EOF
+          )"
