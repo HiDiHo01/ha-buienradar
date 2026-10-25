@@ -1,7 +1,7 @@
 # Buienradar Home Assistant Integration (`ha-buienradar`)
 
 [![GitHub Release](https://img.shields.io/github/v/release/mjj4791/ha-buienradar?style=for-the-badge)](https://github.com/mjj4791/ha-buienradar/releases)
-[![HACS Default](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/default)
+[![HACS Custom Repository](https://img.shields.io/badge/HACS-Custom%20Repo-orange.svg?style=for-the-badge)](https://hacs.xyz/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.1%2B-blue.svg?style=for-the-badge)](https://www.home-assistant.io)
 
@@ -26,9 +26,9 @@ An advanced Home Assistant custom component integration for **Buienradar** weath
 
 1. Ensure [HACS](https://hacs.xyz/) is installed and running in your Home Assistant instance.
 2. Open **HACS** > **Integrations**.
-3. Search for **Buienradar**.
-4. Click **Download**.
-5. Restart Home Assistant.
+3. Click the three dots in the top-right corner and select **Custom repositories**.
+4. Enter the repository URL: `https://github.com/mjj4791/ha-buienradar` and select **Integration** as the Category.
+5. Click **Add**, search for **Buienradar**, click **Download**, and restart Home Assistant.
 
 ### Option 2: Manual Installation
 
