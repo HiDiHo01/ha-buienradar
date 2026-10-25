@@ -1,9 +1,3 @@
-# Quality Scale for Buienradar Home Assistant Integration
-
-domain: buienradar
-name: Buienradar
-quality_scale: silver
-
 rules:
   # Bronze Rules
   config-flow:
@@ -35,7 +29,7 @@ rules:
     comment: Clear HACS and manual installation steps provided.
   brand-assets:
     status: done
-    comment: standard brand images hosted via Home Assistant architecture repository.
+    comment: Standard brand images hosted via Home Assistant architecture repository.
 
   # Silver Rules
   action-exceptions:
