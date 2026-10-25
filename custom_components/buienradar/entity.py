@@ -4,7 +4,7 @@
 import logging
 import re
 from collections.abc import Callable, Mapping
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Final
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
@@ -110,7 +110,7 @@ class BuienalarmEntity(CoordinatorEntity):
                     value,
                 )
                 return value
-            except Exception as err:
+            except Exception as err:  # noqa: BLE001
                 _LOGGER.error(
                     "[BUIENALARM ENTITY] Error retrieving data for sensor '%s' and key '%s': %s",
                     self.name,
@@ -241,12 +241,12 @@ class BuienalarmEntity(CoordinatorEntity):
                 try:
                     parsed_time = datetime.fromisoformat(iso_time)
                     if parsed_time.tzinfo is None:  # normalise to aware
-                        parsed_time = parsed_time.replace(tzinfo=timezone.utc)
+                        parsed_time = parsed_time.replace(tzinfo=UTC)
                 except ValueError as exc:
                     _LOGGER.debug("Invalid ISO time '%s': %s", iso_time, exc)
-                    parsed_time = datetime(1970, 1, 1, tzinfo=timezone.utc)
+                    parsed_time = datetime(1970, 1, 1, tzinfo=UTC)
             else:
-                parsed_time = datetime(1970, 1, 1, tzinfo=timezone.utc)
+                parsed_time = datetime(1970, 1, 1, tzinfo=UTC)
 
             results.append(
                 {
@@ -293,7 +293,7 @@ class BuienalarmEntity(CoordinatorEntity):
 
     def timestamp_to_local(self, timestamp: float) -> datetime:
         """Convert a Unix timestamp to local time."""
-        utc_time = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+        utc_time = datetime.fromtimestamp(timestamp, tz=UTC)
         return dt.as_local(utc_time)
 
     def format_time(self, timestamp: datetime | None) -> str:
@@ -359,7 +359,7 @@ class BuienalarmEntity(CoordinatorEntity):
                 )
             return " ".join(message_parts)
 
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.now(UTC)
 
         if rain_start_time > now_utc:
             if rain_stop_time is None:
@@ -377,7 +377,7 @@ class BuienalarmEntity(CoordinatorEntity):
             return 0
             # raise ValueError("Invalid or missing precipitation data")
 
-        current_time: datetime = datetime.now(timezone.utc)
+        current_time: datetime = datetime.now(UTC)
         precip_started: bool = False
         start_time: datetime | None = None
 
@@ -387,9 +387,7 @@ class BuienalarmEntity(CoordinatorEntity):
                 _LOGGER.debug("Skipping precipitation entry without timestamp")
                 continue
                 # raise ValueError("Missing timestamp in precipitation data")
-            data_point_time: datetime = datetime.fromtimestamp(
-                timestamp, tz=timezone.utc
-            )
+            data_point_time: datetime = datetime.fromtimestamp(timestamp, tz=UTC)
             precip_rate = float(data_point.get("precipitationrate", 0))
 
             # Check if the current time is within the data point
@@ -421,7 +419,7 @@ class BuienalarmEntity(CoordinatorEntity):
             _LOGGER.debug("No precipitation data available")
             return 0
 
-        current_time: datetime = datetime.now(timezone.utc)
+        current_time: datetime = datetime.now(UTC)
         start_time: datetime | None = None
         last_time: datetime | None = None  # Track last processed forecast point
 
@@ -431,7 +429,7 @@ class BuienalarmEntity(CoordinatorEntity):
                 _LOGGER.debug("Skipping precipitation entry without timestamp")
                 continue
 
-            data_point_time = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+            data_point_time = datetime.fromtimestamp(timestamp, tz=UTC)
             precip_rate = float(entry.get("precipitationrate", 0))
 
             if data_point_time <= current_time:
@@ -498,8 +496,8 @@ class BuienalarmEntity(CoordinatorEntity):
             Filtered list, preserving the original ordering.
         """
         self._validate_timestamps(start_time, end_time)
-        start_utc: datetime = start_time.astimezone(timezone.utc)
-        end_utc: datetime = end_time.astimezone(timezone.utc)
+        start_utc: datetime = start_time.astimezone(UTC)
+        end_utc: datetime = end_time.astimezone(UTC)
 
         filtered: list[dict[str, object]] = []
         for data_point in data:
@@ -522,7 +520,7 @@ class BuienalarmEntity(CoordinatorEntity):
                 )
                 continue
 
-            point_time: datetime = datetime.fromtimestamp(ts, tz=timezone.utc)
+            point_time: datetime = datetime.fromtimestamp(ts, tz=UTC)
             if start_utc <= point_time <= end_utc:
                 # mypy: safe because we've validated Mapping presence
                 filtered.append(data_point)
@@ -554,7 +552,7 @@ class BuienalarmEntity(CoordinatorEntity):
     def get_total_precipitation_rate(self) -> float:
         """Get total precipitation rate rounded to one decimal place for the next 2 hours"""
         data: list[dict[str, object]] = self.coordinator.data.get("data", [])
-        current_time: datetime = datetime.now(timezone.utc)
+        current_time: datetime = datetime.now(UTC)
         end_time: datetime = current_time + timedelta(hours=2)
         return self.calculate_total_precipitation_rate(data, current_time, end_time)
 
@@ -562,7 +560,7 @@ class BuienalarmEntity(CoordinatorEntity):
         """Calculate the total precipitation rate in mm/h for the upcoming hour."""
         # Fetch the precipitation data; expecting a list of dictionaries
         data: list[dict[str, object]] = self.coordinator.data.get("data", [])
-        current_time: datetime = datetime.now(timezone.utc)  # Use UTC time
+        current_time: datetime = datetime.now(UTC)  # Use UTC time
         end_time: datetime = current_time + timedelta(hours=1)
 
         _LOGGER.debug(
@@ -585,7 +583,7 @@ class BuienalarmEntity(CoordinatorEntity):
     def get_current_precipitation(self) -> float:
         """Get the current precipitation rate."""
         data: list[dict[str, object]] = self.coordinator.data.get("data", [])
-        current_time: datetime = datetime.now(timezone.utc)
+        current_time: datetime = datetime.now(UTC)
         current_precipitation_rate: float = 0.0
 
         if data is not None:
@@ -600,9 +598,7 @@ class BuienalarmEntity(CoordinatorEntity):
                     and precipitation_type is not None
                 ):
                     if isinstance(data_point, dict):
-                        data_point_timestamp = datetime.fromtimestamp(
-                            timestamp, tz=timezone.utc
-                        )
+                        data_point_timestamp = datetime.fromtimestamp(timestamp, tz=UTC)
                         _LOGGER.debug(
                             "[BUIENALARM ENTITY] Checking data point at %s with precipitation rate %s and type %s",
                             data_point_timestamp,
@@ -659,7 +655,7 @@ class BuienalarmEntity(CoordinatorEntity):
     def get_current_precipitation_rate_desc(self) -> str:
         """Get the description of the current precipitation rate."""
         data: list[dict[str, object]] = self.coordinator.data.get("data", [])
-        current_time: datetime = datetime.now(timezone.utc)
+        current_time: datetime = datetime.now(UTC)
         current_precipitation_rate_desc: str = self.NO_PRECIPITATION
 
         # Log the current time for debugging
@@ -669,7 +665,7 @@ class BuienalarmEntity(CoordinatorEntity):
 
         for data_point in data:
             data_point_timestamp = datetime.fromtimestamp(
-                data_point.get("timestamp", 0), tz=timezone.utc
+                data_point.get("timestamp", 0), tz=UTC
             )
             five_minutes_later = data_point_timestamp + timedelta(minutes=5)
 
@@ -711,14 +707,12 @@ class BuienalarmEntity(CoordinatorEntity):
         precipitation_data: list[dict[str, object]] = self.coordinator.data.get(
             "data", []
         )
-        current_time: datetime = datetime.now(timezone.utc)
+        current_time: datetime = datetime.now(UTC)
         current_type: str = self.NO_PRECIPITATION
 
         for data_point in precipitation_data:
             timestamp = data_point.get("timestamp", 0.0)
-            data_point_timestamp: datetime = datetime.fromtimestamp(
-                timestamp, tz=timezone.utc
-            )
+            data_point_timestamp: datetime = datetime.fromtimestamp(timestamp, tz=UTC)
             five_minutes_later: datetime = data_point_timestamp + timedelta(minutes=5)
 
             if data_point_timestamp < current_time < five_minutes_later:
@@ -767,7 +761,7 @@ class BuienalarmEntity(CoordinatorEntity):
             return None
         # ---------------------------------------------------------------------
 
-        now_utc: datetime = datetime.now(timezone.utc)
+        now_utc: datetime = datetime.now(UTC)
 
         for data_point in precip_data:
             # Forecast points are 5‑minute bins.
@@ -815,7 +809,7 @@ class BuienalarmEntity(CoordinatorEntity):
                     )
                     rate = 0.0
 
-            point_time: datetime = datetime.fromtimestamp(ts, tz=timezone.utc)
+            point_time: datetime = datetime.fromtimestamp(ts, tz=UTC)
             _LOGGER.debug(
                 "[BUIENALARM ENTITY] Parsed timestamp for %s: %s",
                 self.name,
@@ -865,7 +859,7 @@ class BuienalarmEntity(CoordinatorEntity):
         self, precipitation_data: list[dict[str, object]]
     ) -> tuple[datetime | None, datetime | None, datetime | None, int, bool]:
         """Calculate the start time and duration of rain from the precipitation data."""
-        current_time_utc: datetime = datetime.now(timezone.utc)
+        current_time_utc: datetime = datetime.now(UTC)
         rain_start_time_utc: datetime | None = None
         rain_stop_time_utc: datetime | None = None
         rain_restart_time_utc: datetime | None = None
@@ -879,7 +873,7 @@ class BuienalarmEntity(CoordinatorEntity):
             if timestamp is None:
                 continue  # Skip invalid entries
 
-            data_point_timestamp = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+            data_point_timestamp = datetime.fromtimestamp(timestamp, tz=UTC)
 
             # Check if there's precipitation at this data point and it's later than the current time
             if data_point_timestamp >= current_time_utc:
@@ -908,7 +902,7 @@ class BuienalarmEntity(CoordinatorEntity):
                 end_of_data_timestamp = precipitation_data[-1].get("timestamp")
                 if end_of_data_timestamp is not None:
                     end_of_data_time = datetime.fromtimestamp(
-                        end_of_data_timestamp, tz=timezone.utc
+                        end_of_data_timestamp, tz=UTC
                     )
                     rain_duration = int(
                         (end_of_data_time - rain_start_time_utc).total_seconds() / 60
@@ -948,7 +942,7 @@ class BuienalarmEntity(CoordinatorEntity):
 
         try:
             precipitation_periods = self._get_precipitation_periods()
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             _LOGGER.error(
                 "[BUIENALARM ENTITY] Fout bij ophalen van neerslagperiodes voor '%s': %s",
                 self.name,
@@ -991,7 +985,7 @@ class BuienalarmEntity(CoordinatorEntity):
                 - precipitationrate (float): gemiddelde neerslagsnelheid in mm/u
         """
         precipitation_data: list[object] = self.coordinator.data.get("data", [])
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.now(UTC)
 
         if not isinstance(precipitation_data, list):
             _LOGGER.warning(
@@ -1047,7 +1041,7 @@ class BuienalarmEntity(CoordinatorEntity):
                 )
                 continue
 
-            data_time = datetime.fromtimestamp(raw_timestamp, tz=timezone.utc)
+            data_time = datetime.fromtimestamp(raw_timestamp, tz=UTC)
             if data_time < now_utc:
                 continue  # negeer historische data
 
@@ -1081,9 +1075,7 @@ class BuienalarmEntity(CoordinatorEntity):
                 None,
             )
             if last_valid:
-                last_time = datetime.fromtimestamp(
-                    last_valid["timestamp"], tz=timezone.utc
-                )
+                last_time = datetime.fromtimestamp(last_valid["timestamp"], tz=UTC)
                 precipitation_periods_internal.append(
                     (precipitation_start, last_time, current_rates.copy())
                 )
