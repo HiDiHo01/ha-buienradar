@@ -56,10 +56,10 @@ jobs:
           DEFAULT_BRANCH=$(jq -r '.githubRepo.defaultBranch.displayName // empty' <<< "${SOURCE_INFO}")
 
           PROMPT=$(cat <<EOF
-          Audit quality_scale.yaml against the implementation in custom_components/buienradar:
-          1. Verify each rule marked 'done' in quality_scale.yaml corresponds to working code.
+          Audit custom_components/buienradar/quality_scale.yaml against the implementation in custom_components/buienradar:
+          1. Verify each rule marked 'done' in custom_components/buienradar/quality_scale.yaml corresponds to working code.
           2. Check if any silver/gold quality scale requirements can be upgraded.
-          3. Report findings or open a PR updating quality_scale.yaml if necessary.
+          3. Report findings or open a PR updating custom_components/buienradar/quality_scale.yaml if necessary.
           EOF
           )
 
