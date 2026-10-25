@@ -24,7 +24,9 @@ jobs:
         uses: hacs/action@main
         with:
           category: integration
-          ignore: "description, topics, brands"
+          ignore:
+            - description
+            - topics
 
       - name: Hassfest validation
         uses: home-assistant/actions/hassfest@master
