@@ -22,7 +22,7 @@ To maintain high code quality, security standards, and maintainability for Home 
 
 ### 3. Code Quality & Standards
 - AI-generated contributions must conform to Home Assistant style standards (PEP 8, type hints, async/await paradigms).
-- License compliance: Ensure AI tools do not output copyrighted code snippets violating the project's MIT License.
+- **License compliance**: Verify the provenance of AI-generated code and check the output for copied code. Confirm that any third-party code has redistribution terms compatible with this project, and preserve all required copyright, license, and attribution notices. The project's MIT License does not grant permission to reuse third-party material.
 
 ### 4. Transparency
 - When opening a Pull Request that was significantly created or modified using AI tools, state this clearly in the PR description (e.g., *"Assisted by AI tool (Claude/Copilot)"*).

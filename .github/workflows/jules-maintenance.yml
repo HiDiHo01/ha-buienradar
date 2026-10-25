@@ -59,7 +59,7 @@ jobs:
           Perform a weekly codebase audit for ha-buienradar:
           1. Check manifest.json requirements (buienradar, vincenty, geopy) for update availability or deprecations.
           2. Check custom_components/buienradar for Home Assistant core API deprecations or warnings.
-          3. Check compliance with quality_scale.yaml rules.
+          3. Check compliance with custom_components/buienradar/quality_scale.yaml rules.
           4. Report any recommended improvements or open a PR if fixes are required.
           EOF
           )
