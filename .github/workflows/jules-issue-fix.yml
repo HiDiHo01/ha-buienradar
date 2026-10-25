@@ -1,0 +1,133 @@
+name: Jules Issue Auto-Fix
+
+on:
+  issues:
+    types:
+      - labeled
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  auto-fix:
+    name: Start Jules Auto-Fix Session
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    # Trigger only when 'jules-fix' label is added by repo maintainers
+    if: >-
+      github.event.label.name == 'jules-fix' &&
+      (github.event.issue.author_association == 'OWNER' ||
+       github.event.issue.author_association == 'MEMBER' ||
+       github.event.issue.author_association == 'COLLABORATOR')
+
+    steps:
+      - name: Create Jules Auto-Fix Session
+        id: jules
+        env:
+          JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "${JULES_API_KEY:-}" ]; then
+            echo "Warning: JULES_API_KEY secret is not configured." >&2
+            exit 0
+          fi
+
+          OWNER="${REPOSITORY%%/*}"
+          REPO="${REPOSITORY#*/}"
+          API="https://jules.googleapis.com/v1alpha"
+          AUTH_HEADER="X-Goog-Api-Key: ${JULES_API_KEY}"
+
+          SOURCES=$(curl --silent --show-error \
+            --url "${API}/sources" \
+            --header "${AUTH_HEADER}" || echo "{}")
+
+          SOURCE_INFO=$(jq -cer \
+            --arg owner "${OWNER}" \
+            --arg repo "${REPO}" \
+            '[.sources[]? | select(
+              .githubRepo.owner == $owner and
+              .githubRepo.repo == $repo
+            )][0] // empty' <<< "${SOURCES}") || {
+              echo "Warning: ${REPOSITORY} is not available as a Jules source." >&2
+              exit 0
+            }
+
+          SOURCE=$(jq -r '.name // empty' <<< "${SOURCE_INFO}")
+          DEFAULT_BRANCH=$(jq -r '.githubRepo.defaultBranch.displayName // empty' <<< "${SOURCE_INFO}")
+
+          PROMPT=$(cat <<EOF
+          Fix issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}
+          ${ISSUE_URL}
+
+          Description:
+          ${ISSUE_BODY}
+
+          Instructions:
+          1. Read AGENTS.md and applicable repository guidelines.
+          2. Locate the cause of the bug in custom_components/buienradar/.
+          3. Implement a fix and verify syntax and tests.
+          4. Open a Pull Request addressing issue #${ISSUE_NUMBER}.
+          EOF
+          )
+
+          PAYLOAD=$(jq -n \
+            --arg prompt "${PROMPT}" \
+            --arg source "${SOURCE}" \
+            --arg branch "${DEFAULT_BRANCH}" \
+            --arg title "Fix Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}" \
+            '{
+              prompt: $prompt,
+              title: $title,
+              sourceContext: {
+                source: $source,
+                githubRepoContext: {
+                  startingBranch: $branch
+                }
+              }
+            }')
+
+          RESPONSE=$(curl --fail-with-body --silent --show-error \
+            --request POST \
+            --url "${API}/sessions" \
+            --header "${AUTH_HEADER}" \
+            --header "Content-Type: application/json" \
+            --data "${PAYLOAD}") || exit 0
+
+          SESSION=$(jq -r '.name // empty' <<< "${RESPONSE}")
+          if [ -n "${SESSION}" ]; then
+            echo "session=${SESSION}" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Comment on Issue
+        if: ${{ steps.jules.outputs.session != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          SESSION: ${{ steps.jules.outputs.session }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          gh api \
+            "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" \
+            --method POST \
+            --field body="$(cat <<EOF
+          **Jules Auto-Fix session started**
+
+          <!-- jules-session: ${SESSION} -->
+          Jules session: \`${SESSION}\`
+
+          Tracking fix progress in [Jules](https://jules.google/).
+          EOF
+          )"

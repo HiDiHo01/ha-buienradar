@@ -153,6 +153,7 @@ class BrData:
             self.coordinates[CONF_LATITUDE],
             self.coordinates[CONF_LONGITUDE],
             self.timeframe,
+            api="json",
         )
 
         _LOGGER.debug("Buienradar parsed data: %s", result)
