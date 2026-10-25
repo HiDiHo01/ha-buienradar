@@ -5,7 +5,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Callable
 
 import aiohttp
-import async_timeout
 import requests
 from aiohttp import ClientSession, ClientTimeout
 from aiohttp.client_exceptions import ClientResponseError
@@ -105,20 +104,9 @@ class BuienalarmDataUpdateCoordinator(DataUpdateCoordinator):
             "[COORD UPDATE] Starting _async_update_data with timeout: %s", _API_TIMEOUT
         )
         try:
-            async with async_timeout.timeout(30):
+            async with asyncio.timeout(30):
                 data = await self.api.async_get_data()
                 self.api_last_updated = datetime.now(timezone.utc)
-                return data
-                response = await self.hass.async_add_executor_job(
-                    requests.get, self.url
-                )
-                _LOGGER.debug(
-                    "[COORD] HTTP status: %s, headers: %s",
-                    response.status_code,
-                    response.headers,
-                )
-                response.raise_for_status()
-                data = response.json()
                 return data
         except (requests.RequestException, ValueError) as error:
             _LOGGER.error("[COORD] Error updating data: %s", error)

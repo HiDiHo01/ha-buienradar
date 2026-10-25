@@ -13,7 +13,6 @@ from buienradar.constants import (
     WINDAZIMUTH,
     WINDSPEED,
 )
-
 from homeassistant.components.weather import (
     ATTR_CONDITION_CLOUDY,
     ATTR_CONDITION_EXCEPTIONAL,
