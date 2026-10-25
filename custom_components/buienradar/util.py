@@ -34,7 +34,7 @@ from buienradar.constants import (
 )
 from buienradar.urls import JSON_FEED_URL, json_precipitation_forecast_url
 
-from .const import DEFAULT_TIMEOUT, SCHEDULE_NOK, SCHEDULE_OK
+from .const import DEFAULT_TIMEFRAME, DEFAULT_TIMEOUT, SCHEDULE_NOK, SCHEDULE_OK
 
 __all__ = ["BrData"]
 _LOGGER = logging.getLogger(__name__)
@@ -67,7 +67,10 @@ class BrData:
         self.data: dict[str, Any] | None = {}
         self.hass = hass
         self.coordinates = coordinates
-        self.timeframe = timeframe
+        try:
+            self.timeframe = int(timeframe)
+        except (ValueError, TypeError):
+            self.timeframe = DEFAULT_TIMEFRAME
         self.unsub_schedule_update: CALLBACK_TYPE | None = None
 
     async def update_devices(self):
