@@ -6,9 +6,6 @@ from unittest.mock import AsyncMock, MagicMock, call
 import pytest
 from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE, Platform
 
-from custom_components.buienradar.const import SCHEDULE_NOK, SCHEDULE_OK
-from custom_components.buienradar.util import BrData
-
 from custom_components.buienradar.binary_sensor import (
     BINARY_SENSOR_TYPES,
     BuienradarBinarySensor,
@@ -16,6 +13,8 @@ from custom_components.buienradar.binary_sensor import (
     _precipitation_expected,
     async_setup_entry,
 )
+from custom_components.buienradar.const import SCHEDULE_NOK, SCHEDULE_OK
+from custom_components.buienradar.util import BrData
 
 
 @pytest.mark.parametrize(
@@ -116,6 +115,7 @@ def test_current_precipitation(
 ) -> None:
     """Identify rain and snow only with valid station observations."""
     assert _current_precipitation(weather_data, snow=snow) is expected
+
 
 @pytest.mark.parametrize(
     ("sensor_key", "expected_icon"),
@@ -232,9 +232,7 @@ async def test_binary_state_recovery_after_api_failure(
     """Invalidate stale values after failed polling and recover on success."""
     entry = SimpleNamespace(entry_id="example")
     sensor = BuienradarBinarySensor(entry, BINARY_SENSOR_TYPES[0])
-    data = BrData(
-        None, {CONF_LATITUDE: 52.0, CONF_LONGITUDE: 5.0}, 60, [sensor]
-    )
+    data = BrData(None, {CONF_LATITUDE: 52.0, CONF_LONGITUDE: 5.0}, 60, [sensor])
     responses = iter(
         [
             {"precipitation_forecast": {"average": 0.1, "total": 0.1}},
