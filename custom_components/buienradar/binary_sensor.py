@@ -12,7 +12,7 @@ from homeassistant.components.binary_sensor import (
 )
 from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE, Platform
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from buienradar.constants import (
     AVERAGE,
@@ -131,7 +131,7 @@ class BuienradarBinarySensor(BinarySensorEntity):
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: BuienRadarConfigEntry,
-    async_add_entities: AddConfigEntryEntitiesCallback,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Buienradar binary sensors using the shared BrData pattern."""
     config = entry.data
