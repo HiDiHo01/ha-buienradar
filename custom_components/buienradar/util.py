@@ -65,6 +65,7 @@ class BrData:
         """Initialize the data object."""
         self.devices = devices
         self.data: dict[str, Any] | None = {}
+        self.last_update_success = False
         self.hass = hass
         self.coordinates = coordinates
         try:
@@ -171,10 +172,14 @@ class BrData:
         return result[DATA]
 
     async def async_update(self, *_):
-        """Update the data from buienradar and schedule the next update."""
+        """Refresh shared weather data and notify binary sensors on failures."""
         data = await self._async_update()
 
+        self.last_update_success = data is not None
         if data is None:
+            for device in self.devices:
+                if (handle_failure := getattr(device, "data_update_failed", None)):
+                    handle_failure()
             self.async_schedule_update(SCHEDULE_NOK)
             return
 
