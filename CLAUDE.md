@@ -1,5 +1,7 @@
 # CLAUDE.md - AI Assistant Development Guide
 
+**Required guidance:** Read [AI_POLICY.md](AI_POLICY.md), [AGENTS.md](AGENTS.md), and [home-assistant.md](home-assistant.md) before changes or reviews. The policy governs authorization, privacy, and review integrity; this guide provides supplementary implementation context.
+
 This guide provides technical context, commands, and architecture insights for Claude and AI assistants working on `ha-buienradar`.
 
 ---
