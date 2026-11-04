@@ -1,204 +1,163 @@
-"""Binary sensors for Buienalarm rain detection."""
+"""Binary precipitation sensors backed by the Buienradar weather feed."""
 
+from __future__ import annotations
+
+import math
 from collections.abc import Mapping
-from datetime import UTC, datetime, timedelta
-from typing import Final, override
 
 from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE, Platform
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import DOMAIN
-from .coordinator import BuienalarmDataUpdateCoordinator
-from .sensor_types import BINARY_SENSOR_DESCRIPTIONS
-
-_RAIN_TYPES: Final[frozenset[str]] = frozenset(
-    {
-        "rain",
-        "freezing rain",
-        "mix",
-        "mix of rain and snow",
-    }
+from buienradar.constants import (
+    AVERAGE,
+    CONDITION,
+    DETAILED,
+    PRECIPITATION,
+    PRECIPITATION_FORECAST,
+    TOTAL,
 )
 
-_SNOW_TYPES: Final[frozenset[str]] = frozenset(
-    {
-        "snow",
-        "wet snow",
-        "mix",
-        "mix of rain and snow",
-    }
+from . import BuienRadarConfigEntry
+from .const import CONF_TIMEFRAME, DEFAULT_TIMEFRAME
+from .util import BrData
+
+BINARY_SENSOR_TYPES: tuple[BinarySensorEntityDescription, ...] = (
+    BinarySensorEntityDescription(
+        key="precipitation_expected",
+        translation_key="precipitation_expected",
+        device_class=BinarySensorDeviceClass.PRECIPITATION,
+    ),
+    BinarySensorEntityDescription(
+        key="currently_raining",
+        translation_key="currently_raining",
+        device_class=BinarySensorDeviceClass.PRECIPITATION,
+    ),
+    BinarySensorEntityDescription(
+        key="currently_snowing",
+        translation_key="currently_snowing",
+        device_class=BinarySensorDeviceClass.PRECIPITATION,
+    ),
 )
 
 
-class BuienalarmBinarySensor(
-    CoordinatorEntity[BuienalarmDataUpdateCoordinator],
-    BinarySensorEntity,
-):
-    """Represent a Buienalarm rain-related binary sensor."""
+def _nonnegative_rate(value: object) -> float | None:
+    """Accept only finite nonnegative numeric precipitation measurements."""
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    if not math.isfinite(value) or value < 0:
+        return None
+    return float(value)
+
+
+def _precipitation_expected(data: Mapping[str, object]) -> bool | None:
+    """Evaluate the configured forecast window, or return unknown data."""
+    forecast = data.get(PRECIPITATION_FORECAST)
+    if not isinstance(forecast, Mapping):
+        return None
+
+    average = _nonnegative_rate(forecast.get(AVERAGE))
+    total = _nonnegative_rate(forecast.get(TOTAL))
+    if average is None or total is None:
+        return None
+    return average > 0 or total > 0
+
+
+def _current_precipitation(
+    data: Mapping[str, object], *, snow: bool
+) -> bool | None:
+    """Use station precipitation and weather type, not forecast summaries."""
+    intensity = _nonnegative_rate(data.get(PRECIPITATION))
+    if intensity is None:
+        return None
+    if intensity == 0:
+        return False
+
+    condition = data.get(CONDITION)
+    if not isinstance(condition, Mapping):
+        return None
+    general = condition.get(CONDITION)
+    detailed = condition.get(DETAILED)
+    if not isinstance(general, str) or not isinstance(detailed, str):
+        return None
+
+    has_rain = general == "rainy" or "rain" in detailed
+    has_snow = general == "snowy" or "snow" in detailed
+    if not (has_rain or has_snow):
+        return None
+    return has_snow if snow else has_rain
+
+
+class BuienradarBinarySensor(BinarySensorEntity):
+    """Expose forecast precipitation or current weather-station precipitation."""
 
     _attr_has_entity_name = True
-    # entity_description: BinarySensorEntityDescription
+    _attr_should_poll = False
+    _attr_available = False
+    _attr_is_on = None
 
     def __init__(
         self,
-        coordinator: BuienalarmDataUpdateCoordinator,
-        config_entry: ConfigEntry,
+        entry: BuienRadarConfigEntry,
         description: BinarySensorEntityDescription,
     ) -> None:
-        """Initialize a Buienalarm binary sensor."""
-        CoordinatorEntity.__init__(self, coordinator)  # type: ignore[arg-type]
+        """Initialize a Buienradar binary sensor with a stable entity ID."""
         self.entity_description = description
-        self._attr_unique_id = f"{config_entry.entry_id}_{description.key}"
-        self._attr_device_info = coordinator.device_info
-        self._update_state()
+        self._attr_unique_id = f"{entry.entry_id}_{description.key}"
 
     @callback
-    @override
-    def _handle_coordinator_update(self) -> None:
-        """Update the entity when coordinator data changes."""
-        self._update_state()
-        super()._handle_coordinator_update()
+    def data_updated(self, data: BrData) -> None:
+        """Update binary state from the parsed Buienradar response."""
+        weather_data = data.data
+        state: bool | None = None
+        if isinstance(weather_data, Mapping):
+            match self.entity_description.key:
+                case "precipitation_expected":
+                    state = _precipitation_expected(weather_data)
+                case "currently_raining":
+                    state = _current_precipitation(weather_data, snow=False)
+                case "currently_snowing":
+                    state = _current_precipitation(weather_data, snow=True)
 
-    @callback
-    def _update_state(self) -> None:
-        """Update availability and state from the coordinator data."""
-        data = self.coordinator.data
-        if not isinstance(data, Mapping):
-            self._attr_available = False
-            self._attr_is_on = None
-            return
-
-        periods = _get_precipitation_periods(data)
-        self._attr_available = (
-            self.coordinator.last_update_success and periods is not None
-        )
-
-        if periods is None:
-            self._attr_is_on = False
-            return
-
-        current_time = datetime.now(UTC)
-
-        match self.entity_description.key:
-            case "precipitation_expected":
-                self._attr_is_on = any(
-                    _is_precipitation_period(period) for period in periods
-                )
-            case "currently_raining":
-                self._attr_is_on = any(
-                    _is_current_precipitation_period(period, current_time)
-                    and _is_rain_period(period)
-                    for period in periods
-                )
-            case "currently_snowing":
-                self._attr_is_on = any(
-                    _is_current_precipitation_period(period, current_time)
-                    and _is_snow_period(period)
-                    for period in periods
-                )
-            case _:
-                self._attr_is_on = False
-
-
-def _get_precipitation_periods(
-    data: Mapping[str, object],
-) -> list[Mapping[str, object]] | None:
-    """Return validated precipitation periods from coordinator data."""
-    raw_periods = data.get("data")
-    if not isinstance(raw_periods, list):
-        timeseries = data.get("timeseries")
-        if isinstance(timeseries, Mapping):
-            raw_periods = timeseries.get("data")
-
-    if not isinstance(raw_periods, list) or not raw_periods:
-        return None
-
-    periods = [period for period in raw_periods if isinstance(period, Mapping)]
-    if len(periods) != len(raw_periods):
-        return None
-
-    return periods
-
-
-def _is_precipitation_period(period: Mapping[str, object]) -> bool:
-    """Return whether a precipitation period indicates precipitation."""
-    precipitation_rate = _as_float(period.get("precipitationrate"))
-    if precipitation_rate is None or precipitation_rate <= 0:
-        return False
-
-    return _is_rain_period(period) or _is_snow_period(period)
-
-
-def _is_rain_period(period: Mapping[str, object]) -> bool:
-    """Return whether a period precipitation type matches rain types."""
-    precipitation_type = period.get("precipitationtype")
-    if not isinstance(precipitation_type, str):
-        return False
-    return precipitation_type.strip().lower() in _RAIN_TYPES
-
-
-def _is_snow_period(period: Mapping[str, object]) -> bool:
-    """Return whether a period precipitation type matches snow types."""
-    precipitation_type = period.get("precipitationtype")
-    if not isinstance(precipitation_type, str):
-        return False
-    return precipitation_type.strip().lower() in _SNOW_TYPES
-
-
-def _is_current_precipitation_period(
-    period: Mapping[str, object],
-    current_time: datetime,
-) -> bool:
-    """Return whether a period covers the current time and indicates precipitation."""
-    timestamp = _as_float(period.get("timestamp"))
-    if timestamp is None:
-        return False
-
-    period_start = datetime.fromtimestamp(timestamp, tz=UTC)
-    period_end = period_start + timedelta(minutes=5)
-
-    return period_start <= current_time < period_end and _is_precipitation_period(
-        period
-    )
-
-
-def _as_float(value: object) -> float | None:
-    """Convert an API value to float without raising an exception."""
-    if isinstance(value, bool):
-        return None
-
-    if isinstance(value, int | float):
-        return float(value)
-
-    if isinstance(value, str):
-        try:
-            return float(value.replace(",", "."))
-        except ValueError:
-            return None
-
-    return None
+        self._attr_is_on = state
+        self._attr_available = state is not None
+        if getattr(self, "hass", None) is not None:
+            self.async_write_ha_state()
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    entry: BuienRadarConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up Buienalarm binary sensors from their descriptions."""
-    coordinator = hass.data.get(DOMAIN, {}).get(config_entry.entry_id)
-    if not isinstance(coordinator, BuienalarmDataUpdateCoordinator):
-        raise TypeError(
-            "Buienalarm coordinator is not available for config entry "
-            f"{config_entry.entry_id}"
-        )
+    """Set up Buienradar binary sensors using the shared BrData pattern."""
+    config = entry.data
+    latitude = config.get(CONF_LATITUDE, hass.config.latitude)
+    longitude = config.get(CONF_LONGITUDE, hass.config.longitude)
+    if latitude is None or longitude is None:
+        raise ValueError("Buienradar binary sensors require latitude and longitude")
 
-    async_add_entities(
-        BuienalarmBinarySensor(coordinator, config_entry, description)
-        for description in BINARY_SENSOR_DESCRIPTIONS
+    coordinates = {CONF_LATITUDE: float(latitude), CONF_LONGITUDE: float(longitude)}
+    raw_timeframe = entry.options.get(
+        CONF_TIMEFRAME, config.get(CONF_TIMEFRAME, DEFAULT_TIMEFRAME)
     )
+    try:
+        timeframe = int(raw_timeframe)
+    except (TypeError, ValueError, OverflowError):
+        timeframe = DEFAULT_TIMEFRAME
+    if not 5 <= timeframe <= 120:
+        timeframe = DEFAULT_TIMEFRAME
+
+    entities = [
+        BuienradarBinarySensor(entry, description)
+        for description in BINARY_SENSOR_TYPES
+    ]
+    data = BrData(hass, coordinates, timeframe, entities)
+    entry.runtime_data[Platform.BINARY_SENSOR] = data
+    await data.async_update()
+    async_add_entities(entities)
