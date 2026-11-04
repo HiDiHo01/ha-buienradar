@@ -30,14 +30,17 @@ BINARY_SENSOR_TYPES: tuple[BinarySensorEntityDescription, ...] = (
     BinarySensorEntityDescription(
         key="precipitation_expected",
         translation_key="precipitation_expected",
+        icon="mdi:weather-snowy-rainy",
     ),
     BinarySensorEntityDescription(
         key="currently_raining",
         translation_key="currently_raining",
+        icon="mdi:weather-rainy",
     ),
     BinarySensorEntityDescription(
         key="currently_snowing",
         translation_key="currently_snowing",
+        icon="mdi:weather-snowy",
     ),
 )
 
