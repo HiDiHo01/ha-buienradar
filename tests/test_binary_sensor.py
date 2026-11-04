@@ -128,7 +128,9 @@ def test_current_precipitation(
 def test_binary_sensor_icons(sensor_key: str, expected_icon: str) -> None:
     """Keep descriptive MDI icons on all Buienradar binary sensors."""
     description = next(
-        description for description in BINARY_SENSOR_TYPES if description.key == sensor_key
+        description
+        for description in BINARY_SENSOR_TYPES
+        if description.key == sensor_key
     )
     assert description.icon == expected_icon
 
