@@ -1,65 +1,52 @@
-# Home Assistant Architecture & Integration Notes: `ha-buienradar`
+# Home Assistant Custom Integration Rules
 
-This document outlines the architectural implementation details for the `ha-buienradar` custom component within Home Assistant.
+Use these additional rules when working on a Home Assistant custom integration. Follow the current stable Home Assistant Core APIs and official developer documentation; verify API details when uncertain.
 
----
+## Architecture and lifecycle
+- Prefer config-entry-based setup and the current supported Home Assistant integration architecture.
+- Use `DataUpdateCoordinator` for shared polling data when appropriate; avoid duplicate API requests across entities.
+- Implement config-entry setup, unload, reload, and shutdown cleanup correctly.
+- Forward platforms using supported config-entry APIs and clean up listeners, tasks, sessions, and other resources.
+- Do not perform blocking I/O on the event loop. Use supported asynchronous APIs.
+- Use Home Assistant's shared HTTP session via `async_get_clientsession` when appropriate.
+- Apply bounded timeouts, sensible retry behavior, and clear handling of authentication, connection, and invalid-response errors.
+- Avoid unnecessary polling and ensure coordinator refresh failures do not leave stale data incorrectly marked as available.
 
-## 🏛 Integration Lifecycle & Architecture
+## Entities and registries
+- Give entities stable, deterministic unique IDs.
+- Use valid device information and stable identifiers; only set `via_device` when the referenced device is registered and valid.
+- Keep entity names, device information, entity descriptions, units, device classes, state classes, and supported features consistent with Home Assistant conventions.
+- Set availability accurately and guard against missing, invalid, or stale coordinator data.
+- Create entities only when the corresponding feature, account capability, or active contract is present.
+- Handle entity/device registry migrations conservatively. Do not modify entries belonging to other config entries or integrations.
+- Prefer current supported entity properties and APIs over deprecated attributes.
 
-The `ha-buienradar` custom component integrates into Home Assistant using modern `async_setup_entry` patterns and `DataUpdateCoordinator`.
+## Python and asynchronous code
+- Target the Python version supported by the integration and the current Home Assistant release; use Python 3.14+ when that is the project's declared target.
+- Use accurate type hints, modern unions such as `str | None`, and built-in generic types.
+- Add docstrings to functions and methods.
+- Prefix class-internal helper methods with an underscore when they are not public API.
+- Use timezone-aware datetimes and `datetime.now(timezone.utc)` for UTC timestamps.
+- Use lazy `%s`-style formatting for logging calls (e.g. `_LOGGER.debug("Received %s", value)`); do not interpolate values with f-strings in logging calls.
+- Never log credentials, tokens, personal data, or other secrets.
+- Validate API responses before using them and provide useful, sanitized error messages.
+- Avoid `Any` in internal helpers when a more precise type or `object` is suitable; use Home Assistant's required public types where necessary.
 
-```
-                  ┌────────────────────────┐
-                  │    Buienradar API      │
-                  └───────────┬────────────┘
-                              │ Async Polling
-                              ▼
-                  ┌────────────────────────┐
-                  │ DataUpdateCoordinator  │
-                  │   (coordinator.py)     │
-                  └───────────┬────────────┘
-                              │ Centralized Data Dispatch
-            ┌─────────────────┼─────────────────┬─────────────────┐
-            ▼                 ▼                 ▼                 ▼
-     ┌─────────────┐   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
-     │   Weather   │   │   Camera    │   │Binary Sensor│   │   Sensors   │
-     │   Entity    │   │   Entity    │   │   (Rain)    │   │(Temp/Press) │
-     └─────────────┘   └─────────────┘   └─────────────┘   └─────────────┘
-```
+## Testing and quality
+- Test config-entry setup and unload, coordinator success and failure, entity availability, and registry behavior where relevant.
+- Cover missing optional features and account/contract changes.
+- Test edge cases and regressions with current Home Assistant test utilities.
+- Run the project's test suite, linting, type checking, and Home Assistant validation when available.
+- Do not guess the current Home Assistant API. Check the installed version, pinned test dependencies, or official source when compatibility is in question.
+- Do not update dependency pins arbitrarily; follow the project's dependency-management workflow.
 
----
+## Pull-request review focus
+Prioritize event-loop blocking, lifecycle leaks, invalid device identifiers, unstable unique IDs, incorrect entity metadata, unsupported/deprecated APIs, incorrect availability, duplicate requests, race conditions, and regressions in config-entry or registry migration logic.
 
-## ⚙️ Core Modules Breakdown
+## ha-buienradar-specific architecture and behavior
 
-1. **`__init__.py`**:
-   - Handles `async_setup_entry` and `async_unload_entry`.
-   - Initializes `BuienradarDataUpdateCoordinator`.
-   - Forwards entry setup to platform components (`weather`, `camera`, `binary_sensor`, `sensor`).
-
-2. **`coordinator.py` (`BuienradarDataUpdateCoordinator`)**:
-   - Manages periodic polling schedule (`SCHEDULE_OK` or `SCHEDULE_NOK` intervals).
-   - Wraps async API calls to fetch observations and precipitation forecast grids.
-
-3. **`config_flow.py`**:
-   - Implements `BuienradarFlowHandler` for UI-based setup.
-   - Implements `BuienradarOptionsFlowHandler` allowing users to tune timeframe, radar image dimensions, and delta without deleting entities.
-
-4. **`weather.py` (`BuienRadarWeather`)**:
-   - Extends Home Assistant's `WeatherEntity`.
-   - Exposes daily weather forecast arrays (temperature, precipitation, condition, wind) and current atmospheric state.
-
-5. **`camera.py` (`BuienradarCamera`)**:
-   - Extends Home Assistant's `Camera` class.
-   - Fetches animated loop map images representing precipitation radar scans.
-
-6. **`binary_sensor.py` (`BuienradarRainSensor`)**:
-   - Evaluates short-term rain forecast for the configured timeframe.
-   - Changes state to `ON` when rain exceeds sensitivity threshold.
-
----
-
-## 🔒 Home Assistant Core Standards Compliance
-
-- **Storage**: Integrates via `config_entry` (`hass.data[DOMAIN][entry.entry_id]`).
-- **Unload Cleanliness**: Properly unloads platform listeners upon entry removal.
-- **Diagnostics & Logging**: Uses structured logger `custom_components.buienradar`.
+- The active config-entry setup in `custom_components/buienradar/__init__.py` builds one `BrData` source from `util.py` and exposes it through `entry.runtime_data` for binary sensors, numeric sensors and weather entities. The camera platform is also forwarded during setup. Preserve this sharing and correct cleanup on unload.
+- `binary_sensor.py` implements precipitation-expected, currently-raining and currently-snowing entities. Distinguish a confirmed dry value from an indeterminate reading: unavailable or malformed source data must not silently become `False`.
+- Preserve stable entity identifiers, configured location/timeframe behavior, forecast and radar functionality, and existing localization keys when modifying the implementation.
+- `custom_components/buienradar/strings.json` is the source for UI strings, with translations under `custom_components/buienradar/translations/`; see [LOCALIZATION.md](LOCALIZATION.md).
+- Validate with the checks documented in [AGENTS.md](AGENTS.md). Do not infer that the presence of an older coordinator module means it is the active polling path.
