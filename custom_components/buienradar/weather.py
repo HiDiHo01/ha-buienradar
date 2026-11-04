@@ -41,7 +41,7 @@ from homeassistant.const import (
     UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from buienradar.constants import (
     CONDCODE,
@@ -95,7 +95,7 @@ CONDITION_MAP = {
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: BuienRadarConfigEntry,
-    async_add_entities: AddConfigEntryEntitiesCallback,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Register the weather entity with the shared weather-data source."""
     data = entry.runtime_data[Platform.WEATHER]
