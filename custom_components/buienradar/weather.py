@@ -56,7 +56,6 @@ from buienradar.constants import (
 )
 
 from . import BuienRadarConfigEntry
-from .const import DEFAULT_TIMEFRAME
 from .util import BrData
 
 _LOGGER = logging.getLogger(__name__)
@@ -98,27 +97,10 @@ async def async_setup_entry(
     entry: BuienRadarConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up the buienradar platform."""
-    config = entry.data
-
-    latitude = config.get(CONF_LATITUDE, hass.config.latitude)
-    longitude = config.get(CONF_LONGITUDE, hass.config.longitude)
-
-    if None in (latitude, longitude):
-        _LOGGER.error("Latitude or longitude not set in Home Assistant config")
-        return
-
-    coordinates = {CONF_LATITUDE: float(latitude), CONF_LONGITUDE: float(longitude)}
-
-    # create weather entity:
-    _LOGGER.debug("Initializing buienradar weather: coordinates %s", coordinates)
-    entities = [BrWeather(config, coordinates)]
-
-    # create weather data:
-    data = BrData(hass, coordinates, DEFAULT_TIMEFRAME, entities)
-    entry.runtime_data[Platform.WEATHER] = data
-    await data.async_update()
-
+    """Register the weather entity with the shared weather-data source."""
+    data = entry.runtime_data[Platform.WEATHER]
+    entities = [BrWeather(entry.data, data.coordinates)]
+    data.devices.extend(entities)
     async_add_entities(entities)
 
 
