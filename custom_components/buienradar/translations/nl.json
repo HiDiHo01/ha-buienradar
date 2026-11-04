@@ -18,13 +18,13 @@
     "entity": {
     "binary_sensor": {
       "precipitation_expected": {
-        "name": "Buienradar neerslag verwacht"
+        "name": "Neerslag verwacht"
       },
       "currently_raining": {
-        "name": "Buienradar regen bij weerstation"
+        "name": "Regen bij weerstation"
       },
       "currently_snowing": {
-        "name": "Buienradar sneeuw bij weerstation"
+        "name": "Sneeuw bij weerstation"
       }
     },
     "sensor": {
