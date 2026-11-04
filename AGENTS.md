@@ -68,6 +68,12 @@ Use this procedure when the user's task authorizes updating the pull-request bra
 
 These rules supplement the shared guidance adopted from [HiDiHo01/ai-review-rules](https://github.com/HiDiHo01/ai-review-rules). [AI_POLICY.md](AI_POLICY.md) remains authoritative for policy; [home-assistant.md](home-assistant.md) contains technical integration requirements, and [LOCALIZATION.md](LOCALIZATION.md) governs translations.
 
+### Project overview
+- **Purpose:** Home Assistant custom integration for Buienradar weather observations, forecasts, precipitation alerts and animated precipitation radar imagery (NL/BE).
+- **Code:** `custom_components/buienradar/` (integration domain `buienradar`); regression tests in `tests/`; CI in `.github/workflows/`.
+- **Platforms:** `binary_sensor`, `camera`, `sensor` and `weather`. The first, third and fourth share `BrData` via config-entry runtime data; the camera manages its own image requests.
+- **Configuration:** `config_flow.py` handles location setup and country, precipitation timeframe and radar interval options. See [home-assistant.md](home-assistant.md) for the current module responsibilities.
+
 ### Project architecture
 - Domain: `buienradar`; integration source: `custom_components/buienradar/`.
 - Inspect the actual implementation before altering setup. In `__init__.py`, `BrData` from `util.py` is shared between binary sensors, numeric sensors and weather entities via `ConfigEntry.runtime_data`. Do not introduce separate polling loops or replace this model merely because a legacy `coordinator.py` exists.
