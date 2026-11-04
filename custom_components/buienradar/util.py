@@ -178,7 +178,7 @@ class BrData:
         self.last_update_success = data is not None
         if data is None:
             for device in self.devices:
-                if (handle_failure := getattr(device, "data_update_failed", None)):
+                if handle_failure := getattr(device, "data_update_failed", None):
                     handle_failure()
             self.async_schedule_update(SCHEDULE_NOK)
             return
