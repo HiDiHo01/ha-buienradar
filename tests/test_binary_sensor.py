@@ -99,6 +99,23 @@ def test_current_precipitation(
     assert _current_precipitation(weather_data, snow=snow) is expected
 
 
+
+@pytest.mark.parametrize(
+    ("sensor_key", "expected_icon"),
+    [
+        ("precipitation_expected", "mdi:weather-snowy-rainy"),
+        ("currently_raining", "mdi:weather-rainy"),
+        ("currently_snowing", "mdi:weather-snowy"),
+    ],
+)
+def test_binary_sensor_icons(sensor_key: str, expected_icon: str) -> None:
+    """Keep descriptive MDI icons on all Buienradar binary sensors."""
+    description = next(
+        description for description in BINARY_SENSOR_TYPES if description.key == sensor_key
+    )
+    assert description.icon == expected_icon
+
+
 def test_binary_sensor_initially_unavailable_and_updates() -> None:
     """Track data availability and keep the entry's unique identifiers."""
     entry = SimpleNamespace(entry_id="example")
