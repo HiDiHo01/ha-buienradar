@@ -16,9 +16,7 @@ PLATFORMS = [Platform.BINARY_SENSOR, Platform.CAMERA, Platform.SENSOR, Platform.
 type BuienRadarConfigEntry = ConfigEntry[dict[Platform, BrData]]
 
 
-def _create_shared_data(
-    hass: HomeAssistant, entry: BuienRadarConfigEntry
-) -> BrData:
+def _create_shared_data(hass: HomeAssistant, entry: BuienRadarConfigEntry) -> BrData:
     """Create one weather-data source for all non-camera platforms."""
     config = entry.data
     latitude = config.get(CONF_LATITUDE, hass.config.latitude)
@@ -50,10 +48,7 @@ def _create_shared_data(
     if not 5 <= timeframe <= 120:
         timeframe = DEFAULT_TIMEFRAME
 
-    coordinates = {
-        CONF_LATITUDE: latitude_value,
-        CONF_LONGITUDE: longitude_value,
-    }
+    coordinates = {CONF_LATITUDE: latitude_value, CONF_LONGITUDE: longitude_value}
     return BrData(hass, coordinates, timeframe, [])
 
 
