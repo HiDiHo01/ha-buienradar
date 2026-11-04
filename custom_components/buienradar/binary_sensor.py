@@ -6,7 +6,6 @@ import math
 from collections.abc import Mapping
 
 from homeassistant.components.binary_sensor import (
-    BinarySensorDeviceClass,
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
@@ -31,17 +30,14 @@ BINARY_SENSOR_TYPES: tuple[BinarySensorEntityDescription, ...] = (
     BinarySensorEntityDescription(
         key="precipitation_expected",
         translation_key="precipitation_expected",
-        device_class=BinarySensorDeviceClass.PRECIPITATION,
     ),
     BinarySensorEntityDescription(
         key="currently_raining",
         translation_key="currently_raining",
-        device_class=BinarySensorDeviceClass.PRECIPITATION,
     ),
     BinarySensorEntityDescription(
         key="currently_snowing",
         translation_key="currently_snowing",
-        device_class=BinarySensorDeviceClass.PRECIPITATION,
     ),
 )
 
