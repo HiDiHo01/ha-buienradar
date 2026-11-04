@@ -166,8 +166,8 @@ SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         key="windazimuth",
         translation_key="windazimuth",
         native_unit_of_measurement=DEGREE,
-        device_class=SensorDeviceClass.WIND_DIRECTION,
-        state_class=SensorStateClass.MEASUREMENT_ANGLE,
+        device_class=getattr(SensorDeviceClass, "WIND_DIRECTION", None),
+        state_class=getattr(SensorStateClass, "MEASUREMENT_ANGLE", None),
     ),
     SensorEntityDescription(
         key="pressure",
