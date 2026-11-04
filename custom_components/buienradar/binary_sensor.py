@@ -68,9 +68,7 @@ def _precipitation_expected(data: Mapping[str, object]) -> bool | None:
     return average > 0 or total > 0
 
 
-def _current_precipitation(
-    data: Mapping[str, object], *, snow: bool
-) -> bool | None:
+def _current_precipitation(data: Mapping[str, object], *, snow: bool) -> bool | None:
     """Use station precipitation and weather type, not forecast summaries."""
     intensity = _nonnegative_rate(data.get(PRECIPITATION))
     if intensity is None:
