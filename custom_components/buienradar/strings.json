@@ -16,6 +16,17 @@
     }
   },
   "entity": {
+    "binary_sensor": {
+      "precipitation_expected": {
+        "name": "Precipitation expected"
+      },
+      "currently_raining": {
+        "name": "Raining at weather station"
+      },
+      "currently_snowing": {
+        "name": "Snowing at weather station"
+      }
+    },
     "sensor": {
       "barometerfc": {
         "name": "Barometer value"
