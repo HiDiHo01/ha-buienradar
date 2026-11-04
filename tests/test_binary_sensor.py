@@ -107,9 +107,7 @@ def test_binary_sensor_initially_unavailable_and_updates() -> None:
     assert not entity.available
 
     entity.data_updated(
-        SimpleNamespace(
-            data={"precipitation_forecast": {"average": 0.1, "total": 0.1}}
-        )
+        SimpleNamespace(data={"precipitation_forecast": {"average": 0.1, "total": 0.1}})
     )
     assert entity.available
     assert entity.is_on
