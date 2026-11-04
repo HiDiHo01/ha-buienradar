@@ -9,7 +9,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
-from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE, Platform
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -23,7 +23,6 @@ from buienradar.constants import (
 )
 
 from . import BuienRadarConfigEntry
-from .const import CONF_TIMEFRAME, DEFAULT_TIMEFRAME
 from .util import BrData
 
 BINARY_SENSOR_TYPES: tuple[BinarySensorEntityDescription, ...] = (
@@ -72,19 +71,21 @@ def _current_precipitation(data: Mapping[str, object], *, snow: bool) -> bool | 
     intensity = _nonnegative_rate(data.get(PRECIPITATION))
     if intensity is None:
         return None
-    if intensity == 0:
+    if intensity == 0 and not snow:
         return False
 
     condition = data.get(CONDITION)
     if not isinstance(condition, Mapping):
-        return None
+        return False if intensity == 0 else None
     general = condition.get(CONDITION)
     detailed = condition.get(DETAILED)
     if not isinstance(general, str) or not isinstance(detailed, str):
-        return None
+        return False if intensity == 0 else None
 
     has_rain = general == "rainy" or "rain" in detailed
     has_snow = general == "snowy" or "snow" in detailed
+    if intensity == 0:
+        return has_snow if snow else False
     if not (has_rain or has_snow):
         return None
     return has_snow if snow else has_rain
@@ -121,6 +122,16 @@ class BuienradarBinarySensor(BinarySensorEntity):
                 case "currently_snowing":
                     state = _current_precipitation(weather_data, snow=True)
 
+        self._set_state(state)
+
+    @callback
+    def data_update_failed(self) -> None:
+        """Invalidate the current state when shared API polling fails."""
+        self._set_state(None)
+
+    @callback
+    def _set_state(self, state: bool | None) -> None:
+        """Publish a validated state and its availability."""
         self._attr_is_on = state
         self._attr_available = state is not None
         if getattr(self, "hass", None) is not None:
@@ -132,29 +143,11 @@ async def async_setup_entry(
     entry: BuienRadarConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Buienradar binary sensors using the shared BrData pattern."""
-    config = entry.data
-    latitude = config.get(CONF_LATITUDE, hass.config.latitude)
-    longitude = config.get(CONF_LONGITUDE, hass.config.longitude)
-    if latitude is None or longitude is None:
-        raise ValueError("Buienradar binary sensors require latitude and longitude")
-
-    coordinates = {CONF_LATITUDE: float(latitude), CONF_LONGITUDE: float(longitude)}
-    raw_timeframe = entry.options.get(
-        CONF_TIMEFRAME, config.get(CONF_TIMEFRAME, DEFAULT_TIMEFRAME)
-    )
-    try:
-        timeframe = int(raw_timeframe)
-    except (TypeError, ValueError, OverflowError):
-        timeframe = DEFAULT_TIMEFRAME
-    if not 5 <= timeframe <= 120:
-        timeframe = DEFAULT_TIMEFRAME
-
+    """Register Buienradar binary sensors with the shared data source."""
+    data = entry.runtime_data[Platform.BINARY_SENSOR]
     entities = [
         BuienradarBinarySensor(entry, description)
         for description in BINARY_SENSOR_TYPES
     ]
-    data = BrData(hass, coordinates, timeframe, entities)
-    entry.runtime_data[Platform.BINARY_SENSOR] = data
-    await data.async_update()
+    data.devices.extend(entities)
     async_add_entities(entities)
