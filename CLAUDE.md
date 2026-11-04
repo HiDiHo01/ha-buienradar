@@ -26,13 +26,10 @@ pytest
 
 `ha-buienradar` is structured as a standard Home Assistant custom component under `custom_components/buienradar/`:
 
-- **Data Flow**: `coordinator.py` (`BuienradarDataUpdateCoordinator`) fetches weather and precipitation data periodically from the Buienradar API library (`buienradar`).
-- **Config Flow**: `config_flow.py` handles UI configuration entry creation and options flow updates (timeframe, dimensions, delta).
-- **Entities**:
-  - `weather.py`: Integrates `BuienRadarWeather` implementing `WeatherEntity` with forecast support.
-  - `camera.py`: Integrates `BuienradarCamera` producing radar map image loops.
-  - `binary_sensor.py`: Integrates `BuienradarRainSensor` evaluating forecast rain intensity.
-  - `sensor.py`: Exposes individual meteorological metrics (temperature, humidity, pressure, visibility, etc.).
+- **Active data flow**: `__init__.py` sets up a shared `BrData` from `util.py` in `ConfigEntry.runtime_data` for binary sensors, sensors, and weather entities. `camera.py` fetches radar imagery separately.
+- **Config flow**: `config_flow.py` handles location coordinates and options for country, precipitation timeframe, and radar refresh interval.
+- **Entity classes**: `BrWeather` (`weather.py`), `BrSensor` (`sensor.py`), `BuienradarBinarySensor` (`binary_sensor.py`), and `BuienradarCam` (`camera.py`).
+- **Further details**: See [home-assistant.md](home-assistant.md) for the maintained module map. Do not assume the older `coordinator.py` defines the active polling path.
 
 ---
 

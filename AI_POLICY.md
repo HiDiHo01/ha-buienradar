@@ -62,6 +62,8 @@ Respect the adopting project's contribution requirements, licenses, and upstream
 - Review generated and reused content for provenance and compatible redistribution terms. Preserve required copyright notices and attribution; do not assume AI generation removes licensing obligations.
 - Keep detailed dependency, workflow, and coding prescriptions in `AGENTS.md` or the applicable specialist document.
 
+**ha-buienradar-specific copyright requirement:** AI-assisted contributions must not contain verbatim copies of third-party copyrighted code. Verify provenance and license obligations; do not assume that AI generation removes copyright restrictions.
+
 ## 7. Verification and quality gates
 
 - Derive checks from actual project configuration, workflows, and documentation. Choose verification appropriate to the changed files; add focused regression tests for behavior changes and confirmed bugs.

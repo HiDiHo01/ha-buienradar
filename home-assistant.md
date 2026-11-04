@@ -45,6 +45,17 @@ Prioritize event-loop blocking, lifecycle leaks, invalid device identifiers, uns
 
 ## ha-buienradar-specific architecture and behavior
 
+### Current module responsibilities
+- `__init__.py` — validates configuration, initializes one `BrData` instance, forwards the four platforms and cleans up shared polling callbacks on unload.
+- `util.py` — `BrData` retrieves and parses weather/precipitation feeds using Home Assistant's shared HTTP session and schedules updates, including retry intervals after failures.
+- `config_flow.py` — configures coordinates and options for country, precipitation timeframe and radar refresh interval; the radar dimensions are not a configurable option.
+- `binary_sensor.py` — `BuienradarBinarySensor` exposes expected precipitation, current rain and current snow, with unknown/unavailable behavior for invalid data.
+- `sensor.py` — `BrSensor` publishes numerical and descriptive observations and forecast-related sensors.
+- `weather.py` — `BrWeather` publishes current conditions and daily forecasts.
+- `camera.py` — `BuienradarCam` fetches and caches animated radar imagery independently of the shared `BrData` polling.
+- `coordinator.py` and `entity.py` — contain older coordinator/entity code; do not treat them as the active config-entry data path without checking the actual imports and usage.
+- `strings.json` and `translations/` — UI translation sources; see [LOCALIZATION.md](LOCALIZATION.md).
+
 - The active config-entry setup in `custom_components/buienradar/__init__.py` builds one `BrData` source from `util.py` and exposes it through `entry.runtime_data` for binary sensors, numeric sensors and weather entities. The camera platform is also forwarded during setup. Preserve this sharing and correct cleanup on unload.
 - `binary_sensor.py` implements precipitation-expected, currently-raining and currently-snowing entities. Distinguish a confirmed dry value from an indeterminate reading: unavailable or malformed source data must not silently become `False`.
 - Preserve stable entity identifiers, configured location/timeframe behavior, forecast and radar functionality, and existing localization keys when modifying the implementation.
